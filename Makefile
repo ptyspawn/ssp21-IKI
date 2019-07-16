@@ -8,7 +8,7 @@ ALL_GEN_FILES = ${DOT_GEN_FILES} ${SVG_GEN_FILES} ${MSC_GEN_FILES}
 
 #### Primary targets ####
 
-TARGETS = ssp21-iki.html ssp21-iki.pdf
+TARGETS = report.html report.pdf
 
 default: $(TARGETS)
 
@@ -17,16 +17,16 @@ clean:
 
 #### Use pandoc to create PDF and HTML ####
 
-ssp21.html: report.md template_pandoc.html markdown.css Makefile $(ALL_GEN_FILES)
+report.html: report.md template_pandoc.html markdown.css Makefile $(ALL_GEN_FILES)
 	pandoc report.md -s --toc --toc-depth=5 --number-sections \
 		--metadata date="`./get_date_and_revision.sh`" \
 		-f markdown+yaml_metadata_block+startnum \
 		--filter pandoc-fignos \
 		--template template_pandoc.html \
 		--css=markdown.css \
-		-o index.html
+		-o report.html
 
-ssp21.pdf: report.md template_pandoc.latex Makefile $(ALL_GEN_FILES)
+report.pdf: report.md template_pandoc.latex Makefile $(ALL_GEN_FILES)
 	pandoc report.md -s --toc --toc-depth=5 --number-sections \
 		--metadata date="`./get_date_and_revision.sh`" \
 		-f markdown+yaml_metadata_block+startnum \
@@ -34,7 +34,7 @@ ssp21.pdf: report.md template_pandoc.latex Makefile $(ALL_GEN_FILES)
 		--template template_pandoc.latex \
 		-V colorlinks \
 		--highlight-style=monochrome \
-		-o ssp21.pdf
+		-o report.pdf
 
 #### Wildcard rules for generating PNGs from source formats ####
 
