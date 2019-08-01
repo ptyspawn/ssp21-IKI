@@ -19,7 +19,7 @@ clean:
 
 report.html: report.md template_pandoc.html markdown.css Makefile $(ALL_GEN_FILES)
 	pandoc report.md -s --toc --toc-depth=5 --number-sections \
-		--metadata date="`./get_date_and_revision.sh`" \
+		--metadata date="`date +%m/%d/%y`" \
 		-f markdown+yaml_metadata_block+startnum \
 		--filter pandoc-fignos \
 		--template template_pandoc.html \
@@ -28,7 +28,7 @@ report.html: report.md template_pandoc.html markdown.css Makefile $(ALL_GEN_FILE
 
 report.pdf: report.md template_pandoc.latex Makefile $(ALL_GEN_FILES)
 	pandoc report.md -s --toc --toc-depth=5 --number-sections \
-		--metadata date="`./get_date_and_revision.sh`" \
+		--metadata date="`date +%m/%d/%y`" \
 		-f markdown+yaml_metadata_block+startnum \
 		--filter pandoc-fignos \
 		--template template_pandoc.latex \

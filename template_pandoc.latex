@@ -239,7 +239,6 @@ $if(title)$
 \begin{titlepage}
     \centering
     \maketitle
-    \includegraphics[width=6cm,keepaspectratio]{img/svg/tlp-white.png} % also works with logo.pdf    
     \thispagestyle{empty}
 \end{titlepage}
 $endif$
