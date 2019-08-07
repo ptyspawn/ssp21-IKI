@@ -96,3 +96,17 @@ Curve 25519, but with a higher security margin.
 The specification of these algorithms for usage with X.509 enables the usage of X.509 in SSP21.  X.509 tooling such as
 the openssl command line, already supports X25519/Ed25519.
 
+```
+> openssl version
+# OpenSSL 1.1.1b  26 Feb 2019
+
+# generate an Ed25519 private key
+> openssl genpkey -algorithm Ed25519 -out ed25519.key.pem
+
+# generate a certificate signing request
+> openssl req -new -key .\ed25519.key.pem -out certificate.csr
+
+# create a self signed certificate using the CSR and key
+> openssl x509 -req -days 14 -in .\certificate.csr -signkey \
+  .\ed25519.private.pem -out .\certificate.crt
+```
