@@ -110,3 +110,51 @@ the openssl command line, already supports X25519/Ed25519.
 > openssl x509 -req -days 14 -in .\certificate.csr -signkey \
   .\ed25519.private.pem -out .\certificate.crt
 ```
+
+Additional information about the Ed25519 certificate can be found in the Appendix.
+
+# Appendix
+
+## Ed25519 certificate
+
+The contents below are a self-signed certificate using the Ed25519 DSA algorithm.
+
+```
+> cat certificate.crt
+
+-----BEGIN CERTIFICATE-----
+MIIBNDCB5wIUPS5/LdzOFLOCKQ0tVSY713F2ooIwBQYDK2VwMD0xCzAJBgNVBAYT
+AlVTMQswCQYDVQQIDAJPUjENMAsGA1UEBwwEQmVuZDESMBAGA1UECgwJQXV0b21h
+dGFrMB4XDTE5MDgwNzIyMjYzMFoXDTE5MDgyMTIyMjYzMFowPTELMAkGA1UEBhMC
+VVMxCzAJBgNVBAgMAk9SMQ0wCwYDVQQHDARCZW5kMRIwEAYDVQQKDAlBdXRvbWF0
+YWswKjAFBgMrZXADIQCFuhZG5NUpxPFeghHDVPqWT97FlNN4FDwqn/2qnJ/1gTAF
+BgMrZXADQQDxV48lw3MHaOjUidBT76ql3lFfa3bz3kO/5aoU0X+bzbmIzWLiZEKy
+aMXumCfYsvw5t+ku4vRR0er87rtQXvAJ
+-----END CERTIFICATE-----
+
+> openssl x509 -in .\certificate.crt -noout -text
+
+Certificate:
+    Data:
+        Version: 1 (0x0)
+        Serial Number:
+            3d:2e:7f:2d:dc:ce:14:b3:82:29:0d:2d:55:26:3b:d7:71:76:a2:82
+        Signature Algorithm: ED25519
+        Issuer: C = US, ST = OR, L = Bend, O = Automatak
+        Validity
+            Not Before: Aug  7 22:26:30 2019 GMT
+            Not After : Aug 21 22:26:30 2019 GMT
+        Subject: C = US, ST = OR, L = Bend, O = Automatak
+        Subject Public Key Info:
+            Public Key Algorithm: ED25519
+                ED25519 Public-Key:
+                pub:
+                    85:ba:16:46:e4:d5:29:c4:f1:5e:82:11:c3:54:fa:
+                    96:4f:de:c5:94:d3:78:14:3c:2a:9f:fd:aa:9c:9f:
+                    f5:81
+    Signature Algorithm: ED25519
+         f1:57:8f:25:c3:73:07:68:e8:d4:89:d0:53:ef:aa:a5:de:51:
+         5f:6b:76:f3:de:43:bf:e5:aa:14:d1:7f:9b:cd:b9:88:cd:62:
+         e2:64:42:b2:68:c5:ee:98:27:d8:b2:fc:39:b7:e9:2e:e2:f4:
+         51:d1:ea:fc:ee:bb:50:5e:f0:09
+```
