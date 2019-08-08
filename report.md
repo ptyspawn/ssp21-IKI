@@ -98,7 +98,7 @@ the openssl command line, already supports X25519/Ed25519.
 
 ```
 > openssl version
-# OpenSSL 1.1.1b  26 Feb 2019
+OpenSSL 1.1.1b  26 Feb 2019
 
 # generate an Ed25519 private key
 > openssl genpkey -algorithm Ed25519 -out ed25519.key.pem
@@ -111,7 +111,18 @@ the openssl command line, already supports X25519/Ed25519.
   .\ed25519.private.pem -out .\certificate.crt
 ```
 
-Additional information about the Ed25519 certificate can be found in the Appendix.
+A complete Ed25519 certificate and its decoding can be found in the Appendix.  Since SSP21 uses a DH key
+as the identity key for public key modes, the endpoint's certificate must contain a DH key such (e.g. a X25519 key).
+This means that self-signed certificates must utilize the [conversion](https://libsodium.gitbook.io/doc/advanced/ed25519-curve25519)
+between Ed25519 to X25519 keys. This conversion allows devices to use the same key pay for signing and DH operations.
+
+Where certificate chains using authorities are involved, the final (device) certificate will contain an X25519
+key signed by an authority's Ed25519 key.
+
+![Keys in a certificate chain](img/svg/certificate_chain_verification.png){#fig:certificate_chain_verification}
+
+The Ed448/X448 algorithms should be added to SSP21 to provide optional higher security margins than curve 25519, and provide
+something to fall back on in the event of cryptographic break in either primitive.
 
 # Appendix
 
