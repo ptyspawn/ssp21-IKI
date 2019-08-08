@@ -124,6 +124,76 @@ key signed by an authority's Ed25519 key.
 The Ed448/X448 algorithms should be added to SSP21 to provide optional higher security margins than curve 25519, and provide
 something to fall back on in the event of cryptographic break in either primitive.
 
+# PKI without UTC
+
+As discussed in the requirements section, UTC time synchronization presents a logistical challenge for remote endpoints and also
+a potential for denial of service. In this section, an alternative scheme based on a remote endpoint's unsynchronized clock is
+presented. This is acommplished using the mechanisms described in the following subsections.
+
+## Breaking the dependence on UTC
+
+The X.509 RFC explicitly allows for the `notAfter` field to be set to the maximum value.
+
+```
+Section 4.1.2.5 Validity
+
+"In some situations, devices are given certificates for which no good
+expiration date can be assigned.  For example, a device could be
+issued a certificate that binds its model and serial number to its
+public key; such a certificate is intended to be used for the entire
+lifetime of the device.
+
+To indicate that a certificate has no well-defined expiration date,
+the notAfter SHOULD be assigned the GeneralizedTime value of
+99991231235959Z."
+```
+
+Although not explicitly stated in the RFC, presumably, one could also set the `notBefore` field to the minimum value
+of `00000101000000Z` which is synonymous with the beginning of the common era: Year 0, January 1st at 00:00:00. Setting
+these two fields to the minimum and maximum value declares that the certificate has no constraints at all based on UTC.
+
+## Device time and boot nonce
+
+All devices, even tiny microcontrollers, are capable of maintaining some measurement of time since boot. This clock ticks
+away at some rate that is close to the rate of UTC, but with some drift. When UTC time synchronizaton is involved, UTC time
+is typically maintained as some offset from the device's internal clock.
+
+To use the clock in a PKI without UTC, we must couple the time with a `boot nonce`, i.e. a random value that is generated during
+device intialization and remains the same unless the device (or comms process) restarts. To ensure that there is a sufficiently
+small chance of collisions, the boot nonce shall always be a 256-bit random value pulled from some manner of cryptographically
+secure random number generator (CSRNG), such as `/dev/random` on Linux.  This nonce is always paired with the device's clock to
+protect against replay attacks against the clock. This is required because when a device restarts, its clock will typically be reset
+to zero. However, since the boot nonce changes, this can be detected.
+
+## Abstract protocol
+
+This section present an abstract protocol that a SCADA master might use to procure a certificate to communicate with an endpoint
+in the field. The following steps are performed in order:
+
+1. The master informs the authority that it would like to provision a new certificate, and the CA replies with a 256-bit
+random nonce that will be used as the certificate serial number (CSN), but also doubles as an identifier for the entire transaction.
+The CA records this nonce in an internal database along with the time it processed the request (Ts for "start time").
+
+2. The master requests that the outstation (aka field asset) provide its current device time (Td) and boot nonce (Nb), providing it with the CA's certificate ID.
+The outstation replies with the triplet of information {CSN, Td, Nb}, and signs it with its signing key. This triplet plus signature is know as the endpoint time
+attestation (ETA).
+
+3. The master creates a certificate signing request (CSR), and includes the ETA as an extension. It sends it to the CA to provision a certificate.
+
+4. The CA receives the CSR, and validates the authenticity of the ETA using the endpoint's public key. The CA calculates that the elapsed
+time from Ts to reception of the CSR is within some configurable bounds. The CA verifies that the master's CSR contains a known identity and public key.
+If all the checks pass, the CA then issues a certificate with the following contents:
+
+    A) The 'serialNumber' field will contain the CSN identifier originally created by the authority.
+	B) The `subject` field will be the name of the master, known to the CA in its internal database.
+	C) The `issuer` field will identify the CA, and will match the root certificate(s) installed on the end device.
+	D) The `notBefore` and `notAfter` fields will contain the minimum and maximum value respectively.
+	E) The certificate will contain a *critical* extension that defines the validity of the certificate in terms of device time and the boot nonce.
+
+The master may then begin to use the certificate to communicate with the endpoint. As part of certifiate validation, endpoints must check that the critical
+extension's boot nonce matches the current boot nonce. They may then limit the validity of the certificate relative to their internal clock and the bounds
+set within the extension.
+
 # Appendix
 
 ## Ed25519 certificate
