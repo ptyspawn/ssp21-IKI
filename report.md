@@ -175,10 +175,10 @@ random nonce that will be used as the certificate serial number (CSN), but also 
 The CA records this nonce in an internal database along with the time it processed the request (Ts for "start time").
 
 2. The master requests that the outstation (aka field asset) provide its current device time (Td) and boot nonce (Nb), providing it with the CA's certificate ID.
-The outstation replies with the triplet of information {CSN, Td, Nb}, and signs it with its signing key. This triplet plus signature is know as the endpoint time
-attestation (ETA).
+The outstation replies with the triplet of information {CSN, Td, Nb}, and signs it with its signing key. This triplet plus signature is know as the outstation time
+attestation (OTA).
 
-3. The master creates a certificate signing request (CSR), and includes the ETA as an extension. It sends it to the CA to provision a certificate.
+3. The master creates a certificate signing request (CSR), and includes the OTA as an extension. It sends it to the CA to provision a certificate.
 
 4. The CA receives the CSR, and validates the authenticity of the ETA using the endpoint's public key. The CA calculates that the elapsed
 time from Ts to reception of the CSR is within some configurable bounds. The CA verifies that the master's CSR contains a known identity and public key.
@@ -191,8 +191,10 @@ If all the checks pass, the CA then issues a certificate with the following cont
 	E) The certificate will contain a *critical* extension that defines the validity of the certificate in terms of device time and the boot nonce.
 
 The master may then begin to use the certificate to communicate with the endpoint. As part of certifiate validation, endpoints must check that the critical
-extension's boot nonce matches the current boot nonce. They may then limit the validity of the certificate relative to their internal clock and the bounds
+extension's boot nonce matches the current boot nonce. They must then limit the validity of the certificate relative to their internal clock and the bounds
 set within the extension.
+
+![Certificate provisioning protocol](img/msc/protocol.png){#fig:certificate_provisioning_protocol}
 
 # Appendix
 
