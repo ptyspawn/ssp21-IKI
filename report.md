@@ -167,22 +167,23 @@ to zero. However, since the boot nonce changes, this can be detected.
 
 ## Abstract protocol
 
-This section present an abstract protocol that a SCADA master might use to procure a certificate to communicate with an endpoint
-in the field. The following steps are performed in order:
+This section present an abstract protocol that a SCADA master might use to procure a certificate to communicate with an outstation
+in the field.
 
-1. The master informs the authority that it would like to provision a new certificate, and the CA replies with a 256-bit
-random nonce that will be used as the certificate serial number (CSN), but also doubles as an identifier for the entire transaction.
-The CA records this nonce in an internal database along with the time it processed the request (Ts for "start time").
+1. The master makes a request to the authority asking for a fresh certificate serial number (CSN).
 
-2. The master requests that the outstation (aka field asset) provide its current device time (Td) and boot nonce (Nb), providing it with the CA's certificate ID.
-The outstation replies with the triplet of information {CSN, Td, Nb}, and signs it with its signing key. This triplet plus signature is know as the outstation time
+2. The CA replies with a 256-bit random nonce that will be used as the CSN, but also doubles as an identifier for the entire 
+transaction. The CA records this nonce in an internal database along with the time it processed the request (Ts for "start time").
+
+3. The master makes a request to the outstation for attestation of its current device time (Td) and boot nonce (N), providing it with the CSN from the authority.
+
+4. The outstation replies with the triplet of information {CSN, Td, N}, and signs it with its private key. This triplet plus signature is know as the outstation time
 attestation (OTA).
 
-3. The master creates a certificate signing request (CSR), and includes the OTA as an extension. It sends it to the CA to provision a certificate.
+5. The master creates a certificate signing request (CSR) including the OTA as an extension. It sends it to the CA to provision a certificate.
 
-4. The CA receives the CSR, and validates the authenticity of the ETA using the endpoint's public key. The CA calculates that the elapsed
-time from Ts to reception of the CSR is within some configurable bounds. The CA verifies that the master's CSR contains a known identity and public key.
-If all the checks pass, the CA then issues a certificate with the following contents:
+6. The CA processes the CSR and validates the authenticity of both the CSR itself, and the OTA using the appropriate public kets. The CA calculates the elapsed
+time from Ts to reception of the CSR is within some configurable limit. If all the checks pass, the CA then issues a certificate with the following contents:
 
     A) The 'serialNumber' field will contain the CSN identifier originally created by the authority.
 	B) The `subject` field will be the name of the master, known to the CA in its internal database.

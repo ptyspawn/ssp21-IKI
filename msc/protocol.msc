@@ -4,14 +4,14 @@ msc {
 
   CA [label="Certificate Authority"],M [label="Master"], O[label="Outstation"];
 
-  M=>CA  [ label = "get_certificate_serial_number()" ];  
+  M=>CA  [ label = "1) get_certificate_serial_number()" ];  
   CA box CA [ label = "Generate CSN and record time" ];
-  M<=CA  [ label = "OK { Certificate Serial Number (CSN) }" ];  
-  M=>>O   [ label = "get_outstation_time_attestaion(CSN)"];
-  M<<=O   [ label = "OK { OTA }"];
+  M<=CA  [ label = "2) OK { Certificate Serial Number (CSN) }" ];  
+  M=>>O   [ label = "3) get_outstation_time_attestation(CSN)"];
+  M<<=O   [ label = "4) OK { OTA }"];
   M box M   [ label = "Create CSR containing OTA extension"];
-  M=>CA  [ label = "get_signed_certificate(CSR)"];
+  M=>CA  [ label = "5) get_signed_certificate(CSR)"];
   CA box CA [ label = "Verify CSR, OTA, time. Generate certificate."];
-  M<=CA  [ label = "OK { Certificate }"];  
+  M<=CA  [ label = "6) OK { Certificate }"];  
   CA note O [label = "Master may now communicate with outstation using certificate"];
 }
