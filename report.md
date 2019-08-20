@@ -180,7 +180,9 @@ transaction. The CA records this nonce in an internal database along with the ti
 4. The outstation replies with the triplet of information {CSN, Td, N}, and signs it with its private key. This triplet plus signature is know as the outstation time
 attestation (OTA).
 
-5. The master creates a certificate signing request (CSR) including the OTA as an extension. It sends it to the CA to provision a certificate.
+5. The master creates a certificate signing request (CSR) including the OTA as an extension. It sends it to the CA to provision a certificate. The CSR is the DER
+encoded PKCS #10 object also defined in [RFC 2986](https://tools.ietf.org/html/rfc2986). The "attributes" element of this object is capable of carrying the
+to be defined extension including the OTA.
 
 6. The CA processes the CSR and validates the authenticity of both the CSR itself, and the OTA using the appropriate public kets. The CA calculates the elapsed
 time from Ts to reception of the CSR is within some configurable limit. If all the checks pass, the CA then issues a certificate with the following contents:
@@ -196,6 +198,68 @@ extension's boot nonce matches the current boot nonce. They must then limit the 
 set within the extension.
 
 ![Certificate provisioning protocol](img/msc/protocol.png){#fig:certificate_provisioning_protocol}
+
+## Security discussion
+
+This section discusses the security of the abstract protocol presented in the previous section. This "protocol" is actually two different mechanisms working
+together to procure a certificate independent from UTC time synchronization.
+
+The first mechanism is a simple request/response protocol between the client (master) and the authority.  The first request/response (steps 1 & 2) that retrieves 
+a fresh certificate/transaction identifier doesn't necessarily require any cryptographic protection. Anyone could request a new identifier, but would be unable
+to produce a properly signed CSR in step #5 that would lead to a valid certificate being issued. A man-in-the-middle (MitM) could manipulate the 
+certificate ID returned by the authority, to a pre-observed or non-existing ID. At worst, this would result in a denial of service (DoS) which a MitM
+can always perform against a cryptographic protocol by causing authentication mechanism to fail.
+
+Step #5 sends a CSR to the authority which is cryptographically signed using the master's public key and verifiable by the authority. This protects the contents 
+of the message from any modification. Similarly, the certificate returned in step #6 is cryptographically signed by the authority and verifiable by the master.
+Unless confidentiality is required for 1/2 or 3/4, no further security mechanisms are required.
+
+Step 3 is a request from the master to the oustation asking for its current time and boot nonce.  Without integrity protection, a MitM could alter the ID
+in the request, but just as in 1) all an attacker can really do in this situation is perform a DoS. If the master receives a response object containing an ID
+other than the one it requested, it is easily detected. The response in step 4 containing the OTA is signed by the oustation's private key, and cannot be manipulated
+without detection by the authority when it processes the object inside the CSR submitted by the master.
+
+### Confidentiality
+
+The discussion above assumes that the confidentiality of the enrollment process is of little importance, namely that passive observability of the contents of
+the exchanged messages is more important than any loss of privacy. Nevertheless, options exist that could provide both confidentiality and additional
+integrity for certain message exchanges, such as SCEP (below) for protecting exchanges 5/6.
+
+### Simple Certificate Enrollment Protocol (SCEP)
+
+[SCEP](https://www.ietf.org/id/draft-gutmann-scep-14.txt) is a protocol designed (among other things) to handle the enrollment process defined in steps 5 and 6.
+SCEP allows for the signing and encryption of all of the messages exchanged between a client and an authority. Is it to be determined whether the complexity of SCEP
+is worth the effort, nevertheless, the basic idea of exchanging the request/response objects using HTTP and a REST API is an attractive choice since the technology
+and frameworks for implementing it are ubiquitous.
+
+SCEP could be easily extended with new message types to implement exchanges 1/2, while simulataneously providing confidentiality.
+
+## Message and extension definitions
+
+This section provides concrete ASN.1 definitons for the messages and extensions defined in the abstract protocol above.
+
+### 1) create_certificate_serial_number()
+
+This request contains no payload. If implemented over a REST API, the client simply makes an HTTP POST request to a specific URL.
+
+### 2) create_certificate_serial_number() response
+
+The response to this request uses HTTP 200 (OK) with a TBD `content-type` such as `application/octet-stream`. The repsonse data is
+the DER encoded bytes of the following ASN.1 object definiton.
+
+```
+TransactionIdentifier ::= SEQUENCE       
+{                         
+    -- random 256-bit transaction identifier generated by the authority --
+    id     OCTET STRING (SIZE(32)),
+    -- time at which the transaction was started --
+    timeCreated   GeneralizedTime,
+    -- time after which the transaction will expire --
+    invalidAfter   GeneralizedTime
+}
+```
+
+
 
 # Appendix
 

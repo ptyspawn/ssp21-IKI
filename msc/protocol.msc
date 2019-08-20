@@ -4,7 +4,7 @@ msc {
 
   CA [label="Certificate Authority"],M [label="Master"], O[label="Outstation"];
 
-  M=>CA  [ label = "1) get_certificate_serial_number()" ];  
+  M=>CA  [ label = "1) create_certificate_serial_number()" ];  
   CA box CA [ label = "Generate CSN and record time" ];
   M<=CA  [ label = "2) OK { Certificate Serial Number (CSN) }" ];  
   M=>>O   [ label = "3) get_outstation_time_attestation(CSN)"];
