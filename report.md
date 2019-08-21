@@ -170,31 +170,33 @@ to zero. However, since the boot nonce changes, this can be detected.
 This section present an abstract protocol that a SCADA master might use to procure a certificate to communicate with an outstation
 in the field.
 
-1. The master makes a request to the authority asking for a fresh transaction identifier (TID).
+1. The master makes a request to the authority asking for a new transaction identifier (TID).
 
-2. The CA replies with a 256-bit random TID. The CA records this nonce in an internal database along with the time it processed the request (Ts for "start time").
+2. The CA replies with a 256-bit random TID. The CA records this nonce in memory along with the time it processed the request (Ts for "start time").
 
 3. The master makes a request to the outstation for attestation of its current device time (Td) and boot nonce (N), providing it with the TID from the authority.
 
-4. The outstation replies with the triplet of information {TID, Td, N}, and signs it with its private key. This triplet plus signature is know as the outstation time
-attestation (OTA).
+4. The outstation replies with the triplet of information {TID, Td, N}  and signs it with its private key. This triplet plus signature is know as the TimeAttestationResponse (TAR).
 
-5. The master creates a certificate signing request (CSR) including the OTA as an extension. It sends it to the CA to provision a certificate. The CSR is the DER
-encoded PKCS #10 object also defined in [RFC 2986](https://tools.ietf.org/html/rfc2986). The "attributes" element of this object is capable of carrying the
-to be defined extension including the OTA.
+5. The master creates a certificate signing request (CSR) including the TAR as a requested X.509 extension. It sends it to the CA to provision a certificate. The CSR is the DER
+encoded PKCS #10 CSR object. The "attributes" element of this object is capable of carrying the TAR as a requested extension.
 
-6. The CA processes the CSR and validates the authenticity of both the CSR itself, and the OTA using the appropriate public kets. The CA calculates the elapsed
+6. The CA processes the CSR and validates the authenticity of both the CSR itself, and the TAR using the master and outstation public keys. The CA calculates the elapsed
 time from Ts to reception of the CSR is within some configurable limit. If all the checks pass, the CA then issues a certificate with the following contents:
 
     A) The 'serialNumber' field will contain the CSN identifier originally created by the authority.
 	B) The `subject` field will be the name of the master, known to the CA in its internal database.
 	C) The `issuer` field will identify the CA, and will match the root certificate(s) installed on the end device.
 	D) The `notBefore` and `notAfter` fields will contain the minimum and maximum value respectively.
-	E) The certificate will contain a *critical* extension that defines the validity of the certificate in terms of device time and the boot nonce.
+	E) The certificate will contain a extension that defines the validity of the certificate in terms of device time and the boot nonce. This
+	   extension must always be marked as **critical** in the extension envelope.
 
-The master may then begin to use the certificate to communicate with the endpoint. As part of certifiate validation, endpoints must check that the critical
+The master may then begin to use the certificate to communicate with the outstation. As part of certifiate validation, outstations must check that the critical
 extension's boot nonce matches the current boot nonce. They must then limit the validity of the certificate relative to their internal clock and the bounds
 set within the extension.
+
+The following figure illustrates the process described above. The notation below assumes that the protocol is implemented as a REST API 
+passing binary objects back and forth as the request and response payloads.
 
 ![Certificate provisioning protocol](img/msc/protocol.png){#fig:certificate_provisioning_protocol}
 
@@ -235,9 +237,9 @@ SCEP could be easily extended with new message types to implement exchanges 1/2,
 
 ## Message and extension definitions
 
-This section provides concrete ASN.1 definitons for the messages and extensions defined in the abstract protocol above.
+This section provides concrete ASN.1 definitons for the message payloads and embedded extensions defined in the abstract protocol above.
 
-Before defining the message types, we define the following sub-types and type aliases that are used in multiple messages:
+Before defining the individual message types, we define the following ASN.1 sub-types and type aliases that are used in multiple messages:
 
 ```
 -- all random nonces are 256-bits in length --
@@ -252,33 +254,28 @@ BootNonce ::= Nonce256
 DeviceTimestamp ::= INTEGER(0 .. 18446744073709551615)
 ```
 
-### 1) create_certificate_serial_number()
+### CreateTransactionIdRequest (1)
 
 This request contains no payload. If implemented over a REST API, the client simply makes an HTTP POST request to a specific URL.
 
-### 2) create_certificate_serial_number() response
+### CreateTransactionIdResponse (2)
 
-The response to this request uses HTTP 200 (OK) with a TBD `content-type` such as `application/octet-stream`. The repsonse data is
-the DER encoded bytes of the following ASN.1 object definiton.
+The repsonse data is the DER encoded bytes of the following ASN.1 object definiton.
 
 ```
-TransactionIdentifierResponse ::= SEQUENCE       
+CreateTransactionIdResponse ::= SEQUENCE       
 {                         
     -- random 256-bit transaction identifier generated by the authority --
     tid     TransactionIdentifier,
-    -- time at which the transaction was started --
-    timeCreated   GeneralizedTime,
-    -- time after which the transaction will expire --
-    invalidAfter   GeneralizedTime
+    -- the number of milliseconds for which the TID will remain valid --
+    validForMs   DeviceTimestamp
 }  
 ```
 
-The `timeCreated` field indicates the time at which the authority started the transaction. The `invalidAfter` field indicates the time after
-which a subsequent enrollment request in step 5 would fail due to timeout. The time interval defined by the difference of (invalidAfter - timeCreated)
-bounds how long the master can take to retrieve the time attestation from the outstation and submit the CSR. This value would typically be a constant
-configured on the authority. The timeCreate and invalidAfter fields are informational only.
+The `validForMs` field indicates the number of milliseconds for which the TID will remain valid. It is informational only, and is
+meant to help in debugging any subsequent enrollment requests that fail due to a timeout.
 
-### 3) TimeAttestationRequest
+### TimeAttestationRequest (3)
 
 This request message only carries the TID to the outstation for signing purposes.
 
@@ -289,12 +286,12 @@ TimeAttestationRequest ::= SEQUENCE
 }
 ```
 
-### 4) TimeAttestationResponse
+### TimeAttestationResponse (4)
+
+The attestation response uses the same signed structure and algorithm identifiers as a CSR or X.509 certificate.
 
 ```
-
--- this type is imported from RFC 5280, and identifies the signing algorithm to be used
-   along with any parameter it requires --
+-- this type is used in X.509 and PKCS #10 to identify a signing algorithm --
 AlgorithmIdentifier  ::=  SEQUENCE
 {
         algorithm     OBJECT IDENTIFIER
@@ -309,16 +306,54 @@ TBSTimeAttestation ::= SEQUENCE
    bootId          BootNonce  
 }
 
--- the outer envelope for the signed data
-   this is the same structure as a PKCS#10 CSR or X.509 certificate --
+-- the outer envelope for the signed inner data --
 TimeAttestationResponse ::= SEQUENCE
 {
    tbsTimeAttestation    TBSTimeAttestation,
    algorithm             AlgorithmIdentifier,
    signatureValue        BIT STRING
 }
+```
+
+### PKCS #10 CSR (5)
+
+The ASN.1 structure of a CSR is defined in PKCS #10 whose definition is also replicated in [RFC 2986](https://tools.ietf.org/html/rfc2986). It allows
+for arbitrary attributes to be embedded, including extension requests. The CSR format can be privately extended to carry arbitrary data, in this case
+carrying the TimeAttestation response from 4) indicating that the master is requesting an extension in the X.509 certificate that bounds its validity
+based on the device time and the boot nonce.
+
+### X.509 Certificate (6)
+
+The returned X.509 certificate shall contain an extension with an OID that would need to be registered through the IANA. The extension shall
+always be marked "critical" in the extension envelope:
 
 ```
+-- from RFC 5280 --
+Extension  ::=  SEQUENCE  {
+        extnID      OBJECT IDENTIFIER,
+        critical    BOOLEAN DEFAULT FALSE,
+        extnValue   OCTET STRING
+                    -- contains the DER encoding of an ASN.1 value
+                    -- corresponding to the extension type identified
+                    -- by extnID
+        }
+```
+
+The `extnValue` is then the DER encoding of the following ASN.1 sequence:
+
+```
+DeviceTimeValidity ::= SEQUENCE
+{
+    bootId          BootNonce
+	notBefore       DeviceTimestamp
+	notAfter        DeviceTimestamp
+}
+```
+
+The `notBefore` and `notAfter` have the same general meaning as the fields with the same names in the
+X.509 `Validity` structure. The difference is that the bounds apply to relative device time and only
+to a particular device initialization or boot.
+
 
 # Appendix
 
