@@ -354,6 +354,83 @@ The `notBefore` and `notAfter` have the same general meaning as the fields with 
 X.509 `Validity` structure. The difference is that the bounds apply to relative device time and only
 to a particular device initialization or boot.
 
+# Revocation
+
+Systems that issue digital certificates must enviably address revocation of those certificates. Possible
+reasons for revoking a certificate include the disclosure of private keys or the accidental issuance of the
+certificate in the first place.
+
+## Methods of revocation
+
+Revocation has historically been one of the trickest parts of managing a PKI. In the following sections three
+different methods of revocation are discussed and their tradeoffs analyzed within the context of ICS.
+
+### Certificate Revocation Lists (CRLs)
+
+CRLs are a digitally signed artifact that names certificates revoked prior to the scheduled expiration time.  CRLs
+are published by an authority, and distributed to the users of certificates issued by that authority. Using CRLs 
+for revocation puts the onus on the user of a certificate to periodically check a "distribution point" for the CRL that
+is either preconfigured, or named in the certificate itself. CRLs are not a great solution in SCADA for several reasons.
+
+Periodically requesting a CRL at an outstation is problematic from a network perspective.  Many field assests have 
+limited communication bandwidth, but more importantly may not have general purpose networking at all, such as non-IP
+transports like 900mhz radio or serial. As such, CRLs are not a workable solution at the outstation for checking the
+validity of certificates issued to master stations. One could imagine a scheme whereby the master peroidically "pushes"
+CRLs to the outstation, but this puts the subject of a certificate in charge of distributing its own revocation, an 
+obvious crytographic conflict of interest.
+
+CRLs may be practical from the master(s) to an authority as these lines of communication will be IP-based and typically
+have much higher bandwidth to easily support this communication, however, more integrated alternatives to the CRL.
+
+### Online Certificate Status Protocol (OCSP)
+
+OCSP ([RFC 6960](https://tools.ietf.org/html/rfc6960])) was designed to address some of the issues with CRLs. Using OCSP,
+clients make a call to an authority to obtain the status of a certificate as part of the process of validating it. This 
+approach is more 'event driven' and thus reduces network overheads. OCSP is syntactically less complicated than using CRLs
+which reduces the possibility of security bugs in the parsing itself.
+
+Nevertheless, using OCSP at the outstation requires IP connectivity at the outstation and access to an OCSP responder
+(i.e. the authority) at the outstation. Failing to be able to reach the OCSP responder would also result in a denial-of-service
+and failure to establish communications. OCSP has all of the same problems as CRLs at the field asset.
+
+Another interesting difference between IT and OT is that OT communications typically last indefinitely. TCP sessions generally
+stay 'connected' for extremely long periods of time without interruption.  Using OCSP might only force a party to
+revalidate the status of the peer certificate during TLS/SSP21 renegotiation since the TCP session stays up indefinitely.
+
+This means that, practically speaking, OCSP provides no more timely a means of revoking a certificate than just having 
+short-lived certificates for master-to-field communications.
+
+### Fast-expiration
+
+Fast expiration is the practice of issuing certificates that only have a relativity short validity (UTC or UTC-less). If
+one or both ends of the connection is forced to periodically renew certificates, no explicit revocation is required at all.
+The process of revoking a certificate is simply setting some information in the authority telling it to no longer issue
+new certificates for a particular entity.
+
+If the duration of validity for such certificates is on the same order as CRL or OCSP polling, than fast-expiration can 
+'revoke' certificates with the same level of expediency, but doesn't require additional communications for the purpose of 
+validating the status of certificates. Instead, the onus is put on the entity presenting the certificate to periodically
+obtain a new certificate. This scheme works particulary well for certificates where the SCADA master is the subject, 
+removing all burden on field assets to use the network to check their validity.
+
+## Hybrid approach
+
+Fast-expiration should be default method for revoking certificates issued to masters. Masters have the 
+network connectivity and bandwidth making it possible to periodically procure new certificates from an authority. As this
+will be the only mechanism for revoking master certificates, the CA should issue certificates to masters with validity
+lasting hours, not days, months, or years. Fast-expiration can be used inconjunction with the UTC-less PKI scheme presented
+earlier. CAs should issue short lived certificates to masters based on the device clock of the field asset with which
+they want to communicate.
+
+On the other hand, outstation certificates must last for the practical lifetime of the device (years). These certificates
+may be based on UTC, as it's reasonable to assume that the CA and master stations can maintain UTC time synchronization 
+on the enterprise network. It's much easier to protect this relatively small collection of nodes from disruption and attack
+than it is to protect the time synchronization of an entire system across a broad geographical area.
+
+Given that outstation certificates must last a long time, their revocation must be performed using either a CRL or OCSP. OCSP
+is the simpler, more modern approach, and sufficient bandwidth should exist between master stations and an in-house
+authority.
+
 
 # Appendix
 
