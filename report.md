@@ -11,9 +11,9 @@ After careful consideration and numerous discussions with stakeholders, it is no
 of X.509 and the related family of technologies.
 
 The original decision to specify an alternative format to X.509 was primarily driven by the complexity of the format. X.509
-and its extension contain an abundance of information not relevant to many control, and the format is encoded using ASN.1
-DER which is rather complex compared to alternatives.  All of these challenges with X.509 remain true, however, the benefits
-now seem to outweigh the issues, namely:
+and its extensions contain an abundance of information not relevant to many control systems, and the format is encoded 
+using ASN.1 DER which is rather complex compared to alternatives.  All of these challenges with X.509 remain true, however, 
+the benefits now seem to outweigh the issues, namely:
 
 * Using X.509 makes SSP21 less controversial and increases its chances of adoption
 * Any extensions specified for usage in X.509 could also be applied to Transport Layer Security (TLS).
@@ -38,7 +38,7 @@ ICS communications.
 
 * The devices have a much longer service lifetime than those used in other industries.
 
-* They links may be highly bandwidth constrained
+* The links may be highly bandwidth constrained
 
 ## Time Synchronization
 
@@ -48,13 +48,13 @@ of the certificate, explicitly relying on the availability of UTC time synchroni
 reliance can be problematic as it introduces additional attack surface, namely:
 
 * A denial of service (DoS) on the time synchronization mechanism can now disrupt communications. Introducing the usage
-of certificates can ironically make the system much more vulnerable to disruption.
+of certificates ironically makes the system more vulnerable to disruption.
 
 * If time synchronization can be manipulated, the lifetime of certificates can be improperly manipulated.
 
 It is not uncommon for ICS networks to use some form of time synchronization, but it is usually not critical to
-maintaining operations or the monitoring of such operations.  For example, electric power systems frequently use one
-of the [IRIG](http://irig.org/) standards to synchronize time on protective relays to UTC with sub-cycle precision.
+maintaining or monitoring operations.  For example, electric power systems frequently use one of the 
+[IRIG](http://irig.org/) standards to synchronize time on protective relays to UTC with sub-cycle precision.
 In the event of an outage, this synchronization allows event logs from multiple relays to be correlated for root cause
 analysis.  It is a nice-to-have feature for performing a post-mortem analysis, but it is not critical for maintaining
 operations.  Requiring UTC time synchronization just to communicate with the relay makes the system more fragile.
@@ -81,7 +81,7 @@ of endpoints.
 SSP21's public key mode uses X25519 Diffie-Hellman (DH) keys as long term identity keys.  The corresponding Ed25519
 algorithm was specified for use with SSP21 certificates as a digital signature algorithm (DSA).  These algorithms were
 selected for their performance, implementation simplicity, and compact signature sizes. Since SSP21 was specified, X.509
-has begin the process of specifying these algorithms for incorporation in [RFC 8410](https://tools.ietf.org/html/rfc8410).
+has begun specifying these algorithms for incorporation in [RFC 8410](https://tools.ietf.org/html/rfc8410).
 Additionally, it specifies the corresponding DH and DSA algorithms for Curve 448, which has similar properties to
 Curve 25519, but with a higher security margin.
 
@@ -431,6 +431,38 @@ Given that outstation certificates must last a long time, their revocation must 
 is the simpler, more modern approach, and sufficient bandwidth should exist between master stations and an in-house
 authority.
 
+## Clock Skew
+
+When issuing certificates to masters, system admins must also consider the possiblity of outstation clock skew since
+it is not utiltizing synchronization. When certificates are refreshed every hour or so, a fresh time attestation is 
+retrieved, and any clock skew that built up previously is effectively zeroed. Even if the the device clock on the field asset
+ticks at a rate that differs as much as 2% from the CA, that only amounts to a 72 second difference over the course 
+of an hour. Masters should be allowed to retrieve certficates with slight overlap to prevent a loss of communications due
+to clock skew or other disruption. If masters always try to procure certificates in advance of their scheduled expiration,
+communications can be maintained without any concern over skew.
+
+
+
+# Standardization & Recommendations
+
+The concepts discussed within this report are actionable via outreach to several external groups outside CES21. Prior to 
+submitting anyting to a standards body, it is recommended that this report be shared with vendor partners that will most
+definitely have an interest and a stake in seeing this type of a PKI brought to production environments.
+
+The core concepts around a UTC-less PKI would require the registration of unique identifiers (OIDs) via the IETF and the 
+IANA. That said, it is recommended that this report be shared with the IEC TC 57 which publishes the IEC 62351 series of 
+standards. IEC 62351-3 is of particular interest here in that it already covers the usage of TLS within a power systems
+context. This standard makes few ICS-specific recommendations, mostly focusing on compatibility at the level of cipher 
+suites and  renegotation settings.  It makes no recommendation on the period of validity for certificates, how to do PKI
+without UTC, or how to address enrollment in a fast expiration scheme.  Doing the standardization of the X.509 extensions
+and time  attestation exchanges are independent from SSP21.
+
+Prototyping the concepts outlined in this report in the SSP21 reference implementation is also desirable should suitable 
+funding be identified in the future. Implementating the following would provide feedback during the standardization process:
+
+* Implement X.509 handling in SSP21 reference implementation
+* Extend the implementation with messages for time attestation
+* Add device time based processing to an open source CA, such as [EJBCA](https://www.ejbca.org/)
 
 # Appendix
 
