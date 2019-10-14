@@ -128,7 +128,7 @@ something to fall back on in the event of cryptographic break in either primitiv
 
 As discussed in the requirements section, UTC time synchronization presents a logistical challenge for remote endpoints and also
 a potential for denial of service. In this section, an alternative scheme based on a remote endpoint's unsynchronized clock is
-presented. This is acommplished using the mechanisms described in the following subsections.
+presented. This is accomplished using the mechanisms described in the following subsections.
 
 ## Breaking the dependence on UTC
 
@@ -155,11 +155,11 @@ these two fields to the minimum and maximum value declares that the certificate 
 ## Device time and boot nonce
 
 All devices, even tiny microcontrollers, are capable of maintaining some measurement of time since boot. This clock ticks
-away at some rate that is close to the rate of UTC, but with some drift. When UTC time synchronizaton is involved, UTC time
+away at some rate that is close to the rate of UTC, but with some drift. When UTC time synchronization is involved, UTC time
 is typically maintained as some offset from the device's internal clock.
 
 To use the clock in a PKI without UTC, we must couple the time with a `boot nonce`, i.e. a random value that is generated during
-device intialization and remains the same unless the device (or comms process) restarts. To ensure that there is a sufficiently
+device initialization and remains the same unless the device (or comms process) restarts. To ensure that there is a sufficiently
 small chance of collisions, the boot nonce shall always be a 256-bit random value pulled from some manner of cryptographically
 secure random number generator (CSRNG), such as `/dev/random` on Linux.  This nonce is always paired with the device's clock to
 protect against replay attacks against the clock. This is required because when a device restarts, its clock will typically be reset
@@ -191,7 +191,7 @@ time from Ts to reception of the CSR is within some configurable limit. If all t
 	E) The certificate will contain a extension that defines the validity of the certificate in terms of device time and the boot nonce. This
 	   extension must always be marked as **critical** in the extension envelope.
 
-The master may then begin to use the certificate to communicate with the outstation. As part of certifiate validation, outstations must check that the critical
+The master may then begin to use the certificate to communicate with the outstation. As part of certificate validation, outstations must check that the critical
 extension's boot nonce matches the current boot nonce. They must then limit the validity of the certificate relative to their internal clock and the bounds
 set within the extension.
 
@@ -215,9 +215,9 @@ Step #5 sends a CSR to the authority which is cryptographically signed using the
 of the message from any modification. Similarly, the certificate returned in step #6 is cryptographically signed by the authority and verifiable by the master.
 Unless confidentiality is required for 1/2 or 3/4, no further security mechanisms are required.
 
-Step 3 is a request from the master to the oustation asking for its current time and boot nonce.  Without integrity protection, a MitM could alter the ID
+Step 3 is a request from the master to the outstation asking for its current time and boot nonce.  Without integrity protection, a MitM could alter the ID
 in the request, but just as in 1) all an attacker can really do in this situation is perform a DoS. If the master receives a response object containing an ID
-other than the one it requested, it is easily detected. The response in step 4 containing the OTA is signed by the oustation's private key, and cannot be manipulated
+other than the one it requested, it is easily detected. The response in step 4 containing the OTA is signed by the outstation's private key, and cannot be manipulated
 without detection by the authority when it processes the object inside the CSR submitted by the master.
 
 ### Confidentiality
@@ -233,11 +233,11 @@ SCEP allows for the signing and encryption of all of the messages exchanged betw
 is worth the effort, nevertheless, the basic idea of exchanging the request/response objects using HTTP and a REST API is an attractive choice since the technology
 and frameworks for implementing it are ubiquitous.
 
-SCEP could be easily extended with new message types to implement exchanges 1/2, while simulataneously providing confidentiality.
+SCEP could be easily extended with new message types to implement exchanges 1/2, while simultaneously providing confidentiality.
 
 ## Message and extension definitions
 
-This section provides concrete ASN.1 definitons for the message payloads and embedded extensions defined in the abstract protocol above.
+This section provides concrete ASN.1 definitions for the message payloads and embedded extensions defined in the abstract protocol above.
 
 Before defining the individual message types, we define the following ASN.1 sub-types and type aliases that are used in multiple messages:
 
@@ -260,16 +260,16 @@ This request contains no payload. If implemented over a REST API, the client sim
 
 ### TransactionIdResponse (2)
 
-The repsonse data is the DER encoded bytes of the following ASN.1 object definiton.
+The response data is the DER encoded bytes of the following ASN.1 object definition.
 
 ```
-TransactionIdResponse ::= SEQUENCE       
-{                         
+TransactionIdResponse ::= SEQUENCE
+{
     -- random 256-bit transaction identifier generated by the authority --
     tid     TransactionIdentifier,
     -- the number of milliseconds for which the TID will remain valid --
     validForMs   DeviceTimestamp
-}  
+}
 ```
 
 The `validForMs` field indicates the number of milliseconds for which the TID will remain valid. It is informational only, and is
@@ -303,7 +303,7 @@ TBSTimeAttestation ::= SEQUENCE
 {
    tid             TransactionIdentifier,
    deviceTimeMs    DeviceTimestamp,
-   bootId          BootNonce  
+   bootId          BootNonce
 }
 
 -- the outer envelope for the signed inner data --
@@ -362,8 +362,8 @@ certificate in the first place.
 
 ## Methods of revocation
 
-Revocation has historically been one of the trickest parts of managing a PKI. In the following sections three
-different methods of revocation are discussed and their tradeoffs analyzed within the context of ICS.
+Revocation has historically been one of the trickiest parts of managing a PKI. In the following sections three
+different methods of revocation are discussed and their trade-offs analyzed within the context of ICS.
 
 ### Certificate Revocation Lists (CRLs)
 
@@ -372,12 +372,12 @@ are published by an authority, and distributed to the users of certificates issu
 for revocation puts the onus on the user of a certificate to periodically check a "distribution point" for the CRL that
 is either preconfigured, or named in the certificate itself. CRLs are not a great solution in SCADA for several reasons.
 
-Periodically requesting a CRL at an outstation is problematic from a network perspective.  Many field assests have 
+Periodically requesting a CRL at an outstation is problematic from a network perspective.  Many field assets have 
 limited communication bandwidth, but more importantly may not have general purpose networking at all, such as non-IP
 transports like 900mhz radio or serial. As such, CRLs are not a workable solution at the outstation for checking the
-validity of certificates issued to master stations. One could imagine a scheme whereby the master peroidically "pushes"
+validity of certificates issued to master stations. One could imagine a scheme whereby the master periodically "pushes"
 CRLs to the outstation, but this puts the subject of a certificate in charge of distributing its own revocation, an 
-obvious crytographic conflict of interest.
+obvious cryptographic conflict of interest.
 
 CRLs may be practical from the master(s) to an authority as these lines of communication will be IP-based and typically
 have much higher bandwidth to easily support this communication, however, more integrated alternatives to the CRL.
@@ -410,7 +410,7 @@ new certificates for a particular entity.
 If the duration of validity for such certificates is on the same order as CRL or OCSP polling, than fast-expiration can 
 'revoke' certificates with the same level of expediency, but doesn't require additional communications for the purpose of 
 validating the status of certificates. Instead, the onus is put on the entity presenting the certificate to periodically
-obtain a new certificate. This scheme works particulary well for certificates where the SCADA master is the subject, 
+obtain a new certificate. This scheme works particularly well for certificates where the SCADA master is the subject, 
 removing all burden on field assets to use the network to check their validity.
 
 ## Hybrid approach
@@ -418,7 +418,7 @@ removing all burden on field assets to use the network to check their validity.
 Fast-expiration should be default method for revoking certificates issued to masters. Masters have the 
 network connectivity and bandwidth making it possible to periodically procure new certificates from an authority. As this
 will be the only mechanism for revoking master certificates, the CA should issue certificates to masters with validity
-lasting hours, not days, months, or years. Fast-expiration can be used inconjunction with the UTC-less PKI scheme presented
+lasting hours, not days, months, or years. Fast-expiration can be used in conjunction with the UTC-less PKI scheme presented
 earlier. CAs should issue short lived certificates to masters based on the device clock of the field asset with which
 they want to communicate.
 
@@ -433,11 +433,11 @@ authority.
 
 ## Clock Skew
 
-When issuing certificates to masters, system admins must also consider the possiblity of outstation clock skew since
-it is not utiltizing synchronization. When certificates are refreshed every hour or so, a fresh time attestation is 
+When issuing certificates to masters, system admins must also consider the possibility of outstation clock skew since
+it is not utilizing synchronization. When certificates are refreshed every hour or so, a fresh time attestation is 
 retrieved, and any clock skew that built up previously is effectively zeroed. Even if the the device clock on the field asset
 ticks at a rate that differs as much as 2% from the CA, that only amounts to a 72 second difference over the course 
-of an hour. Masters should be allowed to retrieve certficates with slight overlap to prevent a loss of communications due
+of an hour. Masters should be allowed to retrieve certificates with slight overlap to prevent a loss of communications due
 to clock skew or other disruption. If masters always try to procure certificates in advance of their scheduled expiration,
 communications can be maintained without any concern over skew.
 
@@ -446,19 +446,19 @@ communications can be maintained without any concern over skew.
 # Standardization & Recommendations
 
 The concepts discussed within this report are actionable via outreach to several external groups outside CES21. Prior to 
-submitting anyting to a standards body, it is recommended that this report be shared with vendor partners that will most
+submitting anything to a standards body, it is recommended that this report be shared with vendor partners that will most
 definitely have an interest and a stake in seeing this type of a PKI brought to production environments.
 
 The core concepts around a UTC-less PKI would require the registration of unique identifiers (OIDs) via the IETF and the 
 IANA. That said, it is recommended that this report be shared with the IEC TC 57 which publishes the IEC 62351 series of 
 standards. IEC 62351-3 is of particular interest here in that it already covers the usage of TLS within a power systems
 context. This standard makes few ICS-specific recommendations, mostly focusing on compatibility at the level of cipher 
-suites and  renegotation settings.  It makes no recommendation on the period of validity for certificates, how to do PKI
+suites and  renegotiation settings.  It makes no recommendation on the period of validity for certificates, how to do PKI
 without UTC, or how to address enrollment in a fast expiration scheme.  Doing the standardization of the X.509 extensions
 and time  attestation exchanges are independent from SSP21.
 
 Prototyping the concepts outlined in this report in the SSP21 reference implementation is also desirable should suitable 
-funding be identified in the future. Implementating the following would provide feedback during the standardization process:
+funding be identified in the future. Implementing the following would provide feedback during the standardization process:
 
 * Implement X.509 handling in SSP21 reference implementation
 * Extend the implementation with messages for time attestation
