@@ -114,7 +114,7 @@ OpenSSL 1.1.1b  26 Feb 2019
 A complete Ed25519 certificate and its decoding can be found in the Appendix.  Since SSP21 uses a DH key
 as the identity key for public key modes, the endpoint's certificate must contain a DH key such (e.g. a X25519 key).
 This means that self-signed certificates must utilize the [conversion](https://libsodium.gitbook.io/doc/advanced/ed25519-curve25519)
-between Ed25519 to X25519 keys. This conversion allows devices to use the same key pay for signing and DH operations.
+between Ed25519 to X25519 keys. This conversion allows devices to use the same key pair for signing and DH operations.
 
 Where certificate chains using authorities are involved, the final (device) certificate will contain an X25519
 key signed by an authority's Ed25519 key.
@@ -380,7 +380,7 @@ CRLs to the outstation, but this puts the subject of a certificate in charge of 
 obvious cryptographic conflict of interest.
 
 CRLs may be practical from the master(s) to an authority as these lines of communication will be IP-based and typically
-have much higher bandwidth to easily support this communication, however, more integrated alternatives to the CRL.
+have much higher bandwidth to easily support this communication, however, more integrated alternatives to the CRL exist.
 
 ### Online Certificate Status Protocol (OCSP)
 
